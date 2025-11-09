@@ -1,0 +1,215 @@
+\documentclass[12pt,a4paper]{article}
+
+% Paquetes necesarios
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+% Configuración de página
+\geometry{margin=2.5cm}
+
+% Configuración de hipervínculos
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+% Información del documento
+\title{}
+\author{}
+\date{}
+
+\begin{document}
+
+% Portada
+\maketitle
+
+% Resumen
+\begin{abstract}
+
+\end{abstract}
+
+% Tabla de contenidos
+\tableofcontents
+\newpage
+
+% Lista de figuras
+\listoffigures
+\newpage
+
+% Lista de tablas
+\listoftables
+\newpage
+
+% Introducción
+\section{Introducción}
+\subsection{Contexto}
+
+El reconocimiento facial es una de las áreas más activas en el campo de la visión por computadora y la inteligencia artificial. 
+Esta tecnología ha experimentado un crecimiento significativo en las últimas décadas debido a sus múltiples aplicaciones en seguridad, control de acceso, interacción humano-computadora y sistemas biométricos, entre otros.
+
+El problema fundamental del reconocimiento facial consiste en identificar o verificar la identidad de una persona a partir de una imagen digital de su rostro. 
+Este desafío presenta múltiples complicaciones, incluyendo variaciones en iluminación, pose, expresión facial, edad y la presencia de accesorios como gafas o barba. 
+A pesar de estas dificultades, el reconocimiento facial ha demostrado ser una herramienta poderosa y confiable para la identificación de individuos.
+
+Diversos enfoques han sido propuestos para abordar este problema, desde métodos basados en características geométricas hasta técnicas más modernas que utilizan aprendizaje profundo. 
+Sin embargo, los métodos basados en análisis estadístico y álgebra lineal, como la Descomposición en Valores Singulares (SVD) y el Análisis de Componentes Principales (PCA), han demostrado ser particularmente efectivos y computacionalmente eficientes.
+
+La Descomposición en Valores Singulares es una técnica matemática fundamental que permite descomponer una matriz en componentes que capturan las características más importantes de los datos. 
+Cuando se aplica al reconocimiento facial, SVD permite construir un 'espacio facial' donde cada rostro puede ser representado como una combinación lineal de 'caras base' o eigenfaces. 
+Este enfoque no solo facilita el reconocimiento, sino que también permite la compresión de imágenes y la reducción de dimensionalidad, manteniendo la información esencial para la identificación.
+
+\subsection{Objetivos}
+
+El objetivo principal de este trabajo es implementar y evaluar un sistema de reconocimiento facial utilizando la Descomposición en Valores Singulares (SVD), siguiendo la metodología propuesta en las notas académicas de la Universidad Nacional de Córdoba.
+
+Los objetivos específicos incluyen:
+
+\begin{itemize}
+    \item Implementar el algoritmo completo de reconocimiento facial basado en SVD, siguiendo los siete pasos fundamentales del proceso: obtención del conjunto de entrenamiento, cálculo de la imagen media, formación de la matriz de diferencias, cálculo de la descomposición SVD, cálculo de coordenadas de entrenamiento, selección de umbrales y clasificación de nuevas imágenes.
+    
+    \item Evaluar el rendimiento del sistema utilizando un dataset real de imágenes faciales de múltiples individuos, incluyendo análisis de precisión, matrices de confusión y métricas de distancia.
+    
+    \item Analizar las propiedades del espacio facial generado mediante SVD, incluyendo el estudio de los valores singulares y su relación con la capacidad de compresión y reconstrucción de imágenes.
+    
+    \item Examinar la efectividad del método en términos de precisión de reconocimiento y comparar los resultados obtenidos con las expectativas teóricas del algoritmo.
+    
+    \item Documentar el proceso de implementación y los resultados obtenidos.
+\end{itemize}
+
+\subsection{Alcance del trabajo}
+
+Este trabajo se enfoca en la implementación y evaluación del algoritmo SVD para reconocimiento facial según la metodología establecida en las notas académicas de referencia. El alcance del proyecto incluye:
+
+\begin{itemize}
+    \item \textbf{Implementación del algoritmo}: Se implementa el algoritmo completo de reconocimiento facial basado en SVD, incluyendo todas las etapas desde el preprocesamiento de imágenes hasta la clasificación final.
+    
+    \item \textbf{Dataset de evaluación}: Se utiliza un dataset real de imágenes faciales de múltiples celebridades, permitiendo evaluar el rendimiento del sistema con datos reales y variados.
+    
+    \item \textbf{Análisis de resultados}: Se realiza un análisis cuantitativo del rendimiento del sistema mediante métricas estándar de reconocimiento facial, incluyendo precisión, matrices de confusión y análisis de distancias.
+    
+    \item \textbf{Estudio teórico}: Se presenta el marco teórico necesario para comprender el funcionamiento del algoritmo SVD y su aplicación al reconocimiento facial.
+\end{itemize}
+
+El trabajo no incluye comparaciones con otros métodos de reconocimiento facial, ni optimizaciones avanzadas del algoritmo. Tampoco se aborda el problema de detección de caras en imágenes complejas, asumiendo que las imágenes de entrada ya contienen rostros detectados y preprocesados. El enfoque se mantiene en la implementación y evaluación del método SVD clásico según la metodología propuesta.
+
+% Marco teórico
+\section{Marco Teórico}
+\subsection{Descomposición en Valores Singulares (SVD)}
+\subsubsection{Definición matemática}
+
+La Descomposición en Valores Singulares (SVD) es una factorización matricial fundamental en álgebra lineal. Dada una matriz $A \in \mathbb{R}^{m \times n}$ con rango $r$, la SVD permite descomponer $A$ en tres matrices:
+
+\begin{equation}
+A = U\Sigma V^T
+\end{equation}
+
+donde:
+\begin{itemize}
+    \item $U \in \mathbb{R}^{m \times m}$ es una matriz ortogonal cuyas columnas $u_i$ forman un conjunto ortonormal de vectores singulares izquierdos.
+    \item $\Sigma \in \mathbb{R}^{m \times n}$ es una matriz que contiene los valores singulares $\sigma_1, \sigma_2, \ldots, \sigma_k$ en su diagonal, ordenados de forma decreciente: $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_r > 0$ y $\sigma_{r+1} = \sigma_{r+2} = \cdots = \sigma_k = 0$ con $k = \min(m, n)$.
+    \item $V \in \mathbb{R}^{n \times n}$ es una matriz ortogonal cuyas columnas $v_i$ forman un conjunto ortonormal de vectores singulares derechos.
+\end{itemize}
+
+\subsubsection{Propiedades de SVD}
+
+Las principales propiedades de la SVD incluyen:
+
+\begin{itemize}
+    \item Los valores singulares $\sigma_i$ son únicos, mientras que las matrices $U$ y $V$ pueden no serlo.
+    \item Los vectores $v_i$ son los vectores propios de $A^TA$, ya que $A^TA = V\Sigma^T\Sigma V^T$.
+    \item Los vectores $u_i$ son los vectores propios de $AA^T$, ya que $AA^T = U\Sigma\Sigma^TU^T$.
+    \item Si $A$ tiene rango $r$, entonces $v_1, v_2, \ldots, v_r$ forman una base ortonormal para el espacio imagen de $A^T$, y $u_1, u_2, \ldots, u_r$ forman una base ortonormal para el espacio imagen de $A$.
+    \item El rango de la matriz $A$ es igual al número de valores singulares distintos de cero.
+    \item La matriz $A$ puede expresarse como una suma de productos exteriores: $A = \sum_{i=1}^r \sigma_i u_i v_i^T$.
+\end{itemize}
+
+\subsection{Reconocimiento Facial}
+\subsubsection{Enfoques tradicionales}
+
+El reconocimiento facial ha sido abordado mediante diversos enfoques a lo largo de los años. Los métodos tradicionales incluyen:
+
+\begin{itemize}
+    \item \textbf{Métodos geométricos}: Basados en la medición de distancias y relaciones entre características faciales (ojos, nariz, boca).
+    \item \textbf{Métodos basados en plantillas}: Comparación directa de imágenes mediante correlación o distancias.
+    \item \textbf{Métodos estadísticos}: Utilizan técnicas de reducción de dimensionalidad como Análisis de Componentes Principales (PCA) o Análisis Discriminante Lineal (LDA).
+    \item \textbf{Métodos basados en SVD}: Construyen un espacio facial mediante descomposición en valores singulares.
+\end{itemize}
+
+Estos métodos tradicionales, aunque menos sofisticados que las técnicas modernas de aprendizaje profundo, ofrecen ventajas en términos de interpretabilidad, eficiencia computacional y requerimientos de datos.
+
+\subsubsection{Espacio facial}
+
+El concepto de espacio facial se refiere a un subespacio de menor dimensionalidad donde se pueden representar las imágenes faciales. En este espacio, cada rostro se representa como un punto o vector, y rostros similares se encuentran cerca unos de otros.
+
+El espacio facial se construye a partir de un conjunto de imágenes de entrenamiento, identificando las direcciones principales de variación entre las diferentes caras. Estas direcciones principales, conocidas como eigenfaces o caras base, forman una base ortonormal del espacio facial.
+
+La ventaja principal del espacio facial es que permite reducir significativamente la dimensionalidad del problema: en lugar de trabajar con imágenes de miles de píxeles, se trabaja con coordenadas en un espacio de dimensión mucho menor, generalmente igual al número de imágenes de entrenamiento o menor.
+
+% Metodología
+\section{Metodología}
+\subsection{Dataset}
+\subsubsection{Descripción del dataset}
+\subsubsection{Preprocesamiento}
+\subsection{Implementación del Algoritmo SVD}
+\subsection{Evaluación}
+\subsubsection{Métricas utilizadas}
+\subsubsection{Procedimiento de evaluación}
+
+% Resultados
+\section{Resultados}
+\subsection{Resultados del Entrenamiento}
+\subsubsection{Análisis de valores singulares}
+\subsubsection{Espacio facial generado}
+\subsection{Resultados del Reconocimiento}
+\subsubsection{Precisión por persona}
+\subsubsection{Matriz de confusión}
+\subsubsection{Análisis de distancias}
+\subsection{Análisis de Compresión}
+\subsubsection{Razón de compresión}
+\subsubsection{Calidad de reconstrucción}
+
+% Discusión
+\section{Discusión}
+\subsection{Interpretación de resultados}
+\subsection{Comparación con otros métodos}
+\subsection{Limitaciones del método}
+\subsection{Posibles mejoras}
+
+% Conclusiones
+\section{Conclusiones}
+\subsection{Logros alcanzados}
+\subsection{Trabajo futuro}
+
+% Referencias
+\section{Referencias}
+\begin{thebibliography}{99}
+
+\end{thebibliography}
+
+% Apéndices
+\appendix
+\section{Apéndice A: Algoritmos}
+\subsection{Algoritmo de Entrenamiento}
+\subsection{Algoritmo de Reconocimiento}
+
+\section{Apéndice B: Datos Adicionales}
+\subsection{Tablas de Resultados Completos}
+\subsection{Gráficos Adicionales}
+
+\end{document}
+

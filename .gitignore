@@ -1,3 +1,7 @@
 .python-version
 .venv/
 __pycache__/
+
+report/*
+!report/informe.pdf
+!report/informe.tex
