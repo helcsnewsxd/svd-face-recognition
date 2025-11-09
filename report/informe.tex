@@ -164,11 +164,147 @@ La ventaja principal del espacio facial es que permite reducir significativament
 \section{Metodología}
 \subsection{Dataset}
 \subsubsection{Descripción del dataset}
+
+El dataset utilizado en este trabajo consiste en imágenes faciales de múltiples individuos, más especificamente, de diferentes celebridades, cada una representada por múltiples fotografías que capturan variaciones en pose, iluminación y expresión facial.
+
+Para el entrenamiento del modelo, se utilizaron imágenes de 17 individuos diferentes, con 100 imágenes faciales por individuo. Las imágenes fueron organizadas en directorios separados por individuo, facilitando la organización y el procesamiento del dataset.
+
 \subsubsection{Preprocesamiento}
+
+El preprocesamiento de las imágenes es un paso crucial para garantizar el buen funcionamiento del algoritmo SVD. El proceso de preprocesamiento incluye las siguientes etapas:
+
+\begin{itemize}
+    \item \textbf{Conversión a escala de grises}: Las imágenes se cargan en escala de grises para simplificar el procesamiento y reducir la dimensionalidad de los datos.
+    \item \textbf{Redimensionamiento}: Todas las caras extraídas se redimensionan a un tamaño estándar de 100x100 píxeles para mantener consistencia dimensional.
+    \item \textbf{Normalización}: Los valores de píxeles se normalizan al rango [0, 1] dividiendo por 255.
+    \item \textbf{Vectorización}: Cada imagen de 100x100 píxeles se convierte en un vector de 10,000 dimensiones para su procesamiento.
+\end{itemize}
+
+Este preprocesamiento asegura que todas las imágenes tengan el mismo formato y características similares, lo cual es esencial para el correcto funcionamiento del algoritmo SVD.
+
 \subsection{Implementación del Algoritmo SVD}
+
+La implementación del algoritmo de reconocimiento facial basado en SVD sigue una metodología específica que consta de siete pasos principales:
+
+\subsubsection{Paso 1: Obtención del conjunto de entrenamiento}
+
+Se recopila un conjunto $S$ con $N$ imágenes faciales de individuos conocidos. Cada imagen $f_i$ se representa como un vector columna de $M$ píxeles (donde $M = 100 \times 100 = 10,000$). El conjunto de entrenamiento se organiza como una matriz $S \in \mathbb{R}^{M \times N}$ donde cada columna representa una imagen facial:
+
+\begin{equation}
+S = [f_1, f_2, \ldots, f_N]
+\end{equation}
+
+\subsubsection{Paso 2: Cálculo de la imagen media}
+
+Se calcula la imagen media $\bar{f}$ del conjunto de entrenamiento mediante:
+
+\begin{equation}
+\bar{f} = \frac{1}{N}\sum_{i=1}^N f_i
+\end{equation}
+
+Esta imagen media representa el 'rostro promedio' del conjunto de entrenamiento y se utiliza como referencia para calcular las diferencias individuales.
+
+\subsubsection{Paso 3: Formación de la matriz A}
+
+Se forma la matriz $A$ que contiene las diferencias de cada imagen con respecto a la imagen media:
+
+\begin{equation}
+a_i = f_i - \bar{f}
+\end{equation}
+
+\begin{equation}
+A = [a_1, a_2, \ldots, a_N]
+\end{equation}
+
+Esta matriz $A \in \mathbb{R}^{M \times N}$ captura las variaciones de cada rostro respecto al promedio.
+
+\subsubsection{Paso 4: Cálculo de SVD}
+
+Se calcula la descomposición en valores singulares de la matriz $A$:
+
+\begin{equation}
+A = U\Sigma V^T
+\end{equation}
+
+donde:
+\begin{itemize}
+    \item $U \in \mathbb{R}^{M \times M}$ contiene los vectores singulares izquierdos (eigenfaces).
+    \item $\Sigma \in \mathbb{R}^{M \times N}$ contiene los valores singulares en su diagonal.
+    \item $V \in \mathbb{R}^{N \times N}$ contiene los vectores singulares derechos.
+\end{itemize}
+
+Los vectores $u_i$ (columnas de $U$) forman una base ortonormal del espacio facial y se conocen como eigenfaces.
+
+\subsubsection{Paso 5: Cálculo de coordenadas de entrenamiento}
+
+Para cada individuo conocido, se calculan sus coordenadas $x_i$ en el espacio facial. Dada una imagen de entrenamiento $f_i$, sus coordenadas se calculan mediante:
+
+\begin{equation}
+x_i = [u_1, u_2, \ldots, u_r]^T (f_i - \bar{f})
+\end{equation}
+
+donde $r$ es el rango de la matriz $A$ (número de valores singulares distintos de cero). Estas coordenadas representan la posición de cada cara en el espacio facial.
+
+\subsubsection{Paso 6: Selección de umbrales}
+
+Se eligen dos umbrales críticos para el proceso de reconocimiento:
+
+\begin{itemize}
+    \item $\epsilon_1$: Umbral para determinar si una imagen contiene una cara. Si la distancia de una imagen al espacio facial es mayor que $\epsilon_1$, se considera que la imagen no es una cara.
+    \item $\epsilon_0$: Umbral para determinar si una cara pertenece a un individuo conocido. Si la distancia mínima a cualquier individuo conocido es mayor que $\epsilon_0$, se clasifica como "cara desconocida".
+\end{itemize}
+
+En este trabajo se utilizaron los valores $\epsilon_1 = 0.3$ y $\epsilon_0 = 0.2$, seleccionados como valores por defecto del sistema.
+
+\subsubsection{Paso 7: Clasificación de nuevas imágenes}
+
+Para clasificar una nueva imagen $f$:
+
+\begin{enumerate}
+    \item Se calcula su diferencia con la imagen media: $a = f - \bar{f}$.
+    \item Se calculan sus coordenadas en el espacio facial: $x = [u_1, u_2, \ldots, u_r]^T a$.
+    \item Se calcula la distancia al espacio facial: $\epsilon_f = \|a - Ux\|_2$.
+    \item Si $\epsilon_f > \epsilon_1$, la imagen no es una cara.
+    \item Si $\epsilon_f \leq \epsilon_1$, se calculan las distancias a cada individuo conocido: $\epsilon_i = \|x - x_i\|_2$.
+    \item Si $\min_i \epsilon_i > \epsilon_0$, se clasifica como "cara desconocida".
+    \item Si $\min_i \epsilon_i \leq \epsilon_0$, se clasifica como el individuo con menor distancia.
+\end{enumerate}
+
 \subsection{Evaluación}
 \subsubsection{Métricas utilizadas}
+
+Para evaluar el rendimiento del sistema de reconocimiento facial, se utilizaron las siguientes métricas:
+
+\begin{itemize}
+    \item \textbf{Precisión de reconocimiento}: Proporción de imágenes correctamente clasificadas sobre el total de imágenes evaluadas. Se calcula como:
+    \begin{equation}
+    \text{Precisión} = \frac{\text{Clasificaciones correctas}}{\text{Total de imágenes}}
+    \end{equation}
+    
+    \item \textbf{Precisión por persona}: Precisión individual para cada persona en el dataset, permitiendo identificar qué individuos son más fáciles o difíciles de reconocer.
+    
+    \item \textbf{Matriz de confusión}: Tabla que muestra cómo se clasificaron las imágenes, indicando cuántas imágenes de cada persona fueron clasificadas correctamente y cuántas fueron confundidas con otras personas.
+    
+    \item \textbf{Análisis de distancias}: Estudio de las distancias calculadas entre imágenes, incluyendo distancias al espacio facial y distancias entre personas conocidas.
+\end{itemize}
+
 \subsubsection{Procedimiento de evaluación}
+
+El procedimiento de evaluación se realizó de la siguiente manera:
+
+\begin{enumerate}
+    \item Se dividió el dataset en conjunto de entrenamiento y conjunto de prueba. Las imágenes utilizadas para entrenar el modelo no se utilizaron para evaluar su rendimiento.
+    \item Se entrenó el modelo SVD utilizando el conjunto de entrenamiento siguiendo los pasos 1-6 descritos anteriormente.
+    \item Se evaluó el modelo utilizando imágenes del conjunto de prueba, calculando para cada imagen:
+    \begin{itemize}
+        \item Si fue correctamente reconocida (coincide con su etiqueta real).
+        \item La distancia mínima al individuo correcto.
+        \item Las distancias a todos los individuos conocidos.
+    \end{itemize}
+    \item Se calcularon las métricas de precisión global y por persona.
+    \item Se construyó la matriz de confusión para visualizar los errores de clasificación.
+    \item Se analizaron las distribuciones de distancias para entender el comportamiento del sistema.
+\end{enumerate}
 
 % Resultados
 \section{Resultados}
@@ -203,11 +339,8 @@ La ventaja principal del espacio facial es que permite reducir significativament
 
 % Apéndices
 \appendix
-\section{Apéndice A: Algoritmos}
-\subsection{Algoritmo de Entrenamiento}
-\subsection{Algoritmo de Reconocimiento}
 
-\section{Apéndice B: Datos Adicionales}
+\section{Apéndice A: Datos Adicionales}
 \subsection{Tablas de Resultados Completos}
 \subsection{Gráficos Adicionales}
 
