@@ -7,6 +7,39 @@ from image import Image, read_images
 
 
 class FaceRecognition:
+    """
+    Python SVD Face Recognition model class.
+
+    Attributes
+    ----------
+    without_threshold: bool
+        Specifies if model will use thresholds or not
+    e0: float
+        Threshold to know if image is a known face
+    e1: float
+        Threshold to know if image is a face
+    k: int
+        Compression level
+    LOG: bool
+        Logging flag
+    shape: Tuple[int, int]
+        Shape of images
+    imgs: List[Tuple[npt.NDArray[np.float64], str]]
+        List of tuples with compressed image and its tag
+    M: int
+        Total number of pixels in each image
+    N: int
+        Total number of images in training set
+    fmean: npt.NDArray[np.float64]
+        Vector that represents mean face
+    A: npt.NDArray[np.float64]
+        Matrix A used in SVD
+    U: npt.NDArray[np.float64]
+        Matrix U from SVD of A
+    X: npt.NDArray[np.float64]
+        Matrix that represents images in face space
+    """
+
     def __init__(
         self,
         without_threshold: bool,
@@ -16,6 +49,34 @@ class FaceRecognition:
         LOG: bool,
         shape: Tuple[int, int],
     ) -> None:
+        """
+        FaceRecognition constructor.
+
+        Parameters
+        ----------
+        without_threshold: bool
+            Specifies if model will use thresholds or not
+        e0: float
+            Threshold to know if image is a known face
+        e1: float
+            Threshold to know if image is a face
+        k: int
+            Compression level
+        LOG: bool
+            Logging flag
+        shape: Tuple[int, int]
+            Shape of images
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError:
+            If thresholds are not positive values, compression level k is not positive or
+            if thresholds are not provided when without_threshold is False
+        """
         self.without_threshold = without_threshold
         if not without_threshold:
             if e0 is None or e1 is None:
@@ -38,6 +99,25 @@ class FaceRecognition:
         self.X = np.zeros((0, 0))
 
     def train(self, images: List[str], tags: List[str]) -> None:
+        """
+        Trains the FaceRecognition model.
+
+        Parameters
+        ----------
+        images: List[str]
+            List of paths to images for training
+        tags: List[str]
+            List of face names for each image path
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError:
+            If images list is empty or if images and tags lists have different sizes
+        """
         if len(images) == 0:
             raise ValueError("Model can't train without training data")
         elif len(images) != len(tags):
@@ -70,6 +150,25 @@ class FaceRecognition:
         self.X = self.U.T @ self.A
 
     def classify(self, src: str) -> Tuple[str, np.floating | float] | None:
+        """
+        Classifies a given image.
+
+        Parameters
+        ----------
+        src: str
+            Path to the image to be classified
+
+        Returns
+        -------
+        (tag: str, distance: float) | None
+            Returns a tuple with the tag of the recognized face and the distance value if the face is known,
+            or None if the face is unknown or not a face.
+
+        Raises
+        ------
+        RuntimeError:
+            If the model has not been trained yet
+        """
         if self.N == 0:
             raise RuntimeError("Model can't classify without previous training")
 
