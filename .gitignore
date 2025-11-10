@@ -1,3 +1,9 @@
 .python-version
 **/*.ipynb_checkpoints
-__pycache__/
+__pycache__/ 
+**/*.aux
+**/*.fdb_latexmk
+**/*.fls
+**/*.log
+**/*.out
+**/*.toc
