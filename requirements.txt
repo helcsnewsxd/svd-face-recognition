@@ -1,3 +1,5 @@
 opencv-python
 numpy
 tqdm
+ipykernel
+scikit-learn
