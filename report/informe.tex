@@ -165,9 +165,11 @@ La ventaja principal del espacio facial es que permite reducir significativament
 \subsection{Dataset}
 \subsubsection{Descripción del dataset}
 
-El dataset utilizado en este trabajo consiste en imágenes faciales de múltiples individuos, más especificamente, de diferentes celebridades, cada una representada por múltiples fotografías que capturan variaciones en pose, iluminación y expresión facial.
+En este trabajo se utilizaron dos datasets diferentes para evaluar el rendimiento del algoritmo SVD bajo distintas condiciones:
 
-Para el entrenamiento del modelo, se utilizaron imágenes de 17 individuos diferentes, con 100 imágenes faciales por individuo. Las imágenes fueron organizadas en directorios separados por individuo, facilitando la organización y el procesamiento del dataset.
+\textbf{Dataset de Celebridades}: Se utilizó el Celebrity Face Image Dataset disponible en Kaggle\footnote{\url{https://www.kaggle.com/datasets/vishesh1412/celebrity-face-image-dataset}}, que consiste en imágenes faciales de múltiples celebridades, cada una representada por múltiples fotografías que capturan variaciones en pose, iluminación y expresión facial. Para el entrenamiento del modelo, se utilizaron imágenes de 17 individuos diferentes, con aproximadamente 100 imágenes faciales por individuo (total: 1,783 imágenes). Las imágenes fueron organizadas en directorios separados por individuo, facilitando la organización y el procesamiento del dataset.
+
+\textbf{Yale Face Database}: Se utilizó el Extended Yale B Cropped Full dataset disponible en Kaggle\footnote{\url{https://www.kaggle.com/datasets/jensdhondt/extendedyaleb-cropped-full/data}}, que contiene imágenes de estudiantes de la Universidad de Yale. Este dataset se caracteriza por tener condiciones de iluminación controladas, alineación precisa y múltiples imágenes por persona bajo diferentes condiciones. Para el entrenamiento del modelo, se utilizaron 16,352 imágenes de 28 personas diferentes (584 imágenes por persona). Este dataset es ampliamente utilizado como referencia en reconocimiento facial debido a su calidad y consistencia.
 
 \subsubsection{Preprocesamiento}
 
@@ -310,11 +312,22 @@ El procedimiento de evaluación se realizó de la siguiente manera:
 \section{Resultados}
 \subsection{Resultados del Entrenamiento}
 
-El modelo SVD fue entrenado utilizando 1,783 imágenes faciales de 17 personas diferentes. 
+Se evaluó el sistema con dos datasets diferentes para analizar el impacto de la calidad y cantidad de datos en el rendimiento del algoritmo.
+
+\subsubsection{Dataset de celebridades}
+
+El modelo SVD fue entrenado inicialmente utilizando 1,783 imágenes faciales de 17 personas diferentes (aproximadamente 100 imágenes por persona). 
 La descomposición SVD de la matriz $A$ (10,000 píxeles × 1,783 imágenes) generó 1,783 valores singulares, mostrando un decaimiento rápido característico de datos con estructura subyacente.
 
 El espacio facial generado tiene dimensión 1,783, definido por los vectores singulares izquierdos (eigenfaces) de la matriz $U$. 
 Cada una de las 17 personas está representada por múltiples puntos en este espacio, correspondientes a sus diferentes imágenes de entrenamiento.
+
+\subsubsection{Dataset de Yale}
+
+Posteriormente, se entrenó el modelo con el Yale Face Database, utilizando 16,352 imágenes faciales de 28 personas diferentes (584 imágenes por persona). 
+La descomposición SVD de la matriz $A$ (10,000 píxeles × 16,352 imágenes) generó 10,000 valores singulares, mostrando el mismo comportamiento de decaimiento rápido característico.
+
+El espacio facial generado tiene dimensión 10,000, proporcionando una representación más rica y completa del espacio facial debido a la mayor cantidad de imágenes de entrenamiento.
 
 \subsubsection{Análisis de valores singulares}
 
@@ -322,14 +335,16 @@ La figura~\ref{fig:singular_values} muestra el comportamiento de los primeros 10
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.9\textwidth]{grafico_valores_singulares_celebrities.png}
+\includegraphics[width=0.9\textwidth]{grafico_valores_singulares.png}
 \caption{Valores singulares de la descomposición SVD (primeros 100 valores). El gráfico superior muestra la escala lineal y el inferior la escala logarítmica para visualizar mejor el decaimiento.}
 \label{fig:singular_values}
 \end{figure}
 
 \subsection{Resultados del Reconocimiento}
 
-Se evaluó el sistema con imágenes de prueba de cada una de las 17 personas. 
+\subsubsection{Resultados con el dataset de celebridades}
+
+Se evaluó el sistema con imágenes de prueba de cada una de las 17 personas del dataset de celebridades. 
 Las distancias mínimas obtenidas se encuentran en el rango de 17 a 25 unidades, todas por encima del umbral $\epsilon_0 = 10$, resultando en que todas las imágenes fueron clasificadas como 'cara desconocida'.
 
 La tabla~\ref{tab:distancias} muestra las distancias mínimas obtenidas para cada imagen de prueba, junto con la distancia a la persona correcta y la persona a la que corresponde la distancia mínima. La figura~\ref{fig:histograma_distancias} presenta la distribución de estas distancias mediante un histograma y un diagrama de caja.
@@ -351,6 +366,37 @@ Es importante destacar que cuando se prueba el sistema con imágenes que pertene
 Se probó también el sistema con una imagen que no corresponde a una cara humana (un gato con traje), la cual fue correctamente clasificada como 'cara desconocida' con distancia mínima de 24.03.
 
 Con los umbrales actuales ($\epsilon_1 = 15$ y $\epsilon_0 = 10$), la precisión de reconocimiento es 0\% para todas las personas. Este resultado indica que el umbral $\epsilon_0$ es demasiado estricto para el rango de distancias observado, sugiriendo la necesidad de ajustar los umbrales o mejorar el espacio facial mediante más imágenes de entrenamiento o mejor preprocesamiento.
+
+\subsubsection{Resultados con el dataset de Yale}
+
+Para evaluar el rendimiento del sistema con un dataset más completo y con mejores condiciones de captura, se utilizó el Yale Face Database, un dataset estándar en reconocimiento facial que contiene imágenes de estudiantes de la Universidad de Yale. Este dataset se caracteriza por tener condiciones de iluminación controladas, alineación precisa y múltiples imágenes por persona bajo diferentes condiciones.
+
+El modelo fue entrenado utilizando 16,352 imágenes faciales de 28 personas diferentes (584 imágenes por persona), generando 10,000 valores singulares. Los umbrales utilizados fueron $\epsilon_1 = 5$ y $\epsilon_0 = 10$.
+
+Los resultados obtenidos fueron significativamente mejores que con el dataset de celebridades. De 30 pruebas realizadas, 22 fueron reconocidas correctamente (73.3\% de precisión), mientras que 8 fueron clasificadas como 'cara desconocida'. Las distancias mínimas para las personas reconocidas correctamente se encuentran en el rango de 5.1 a 9.8 unidades, la mayoría por debajo del umbral $\epsilon_0 = 10$.
+
+La tabla~\ref{tab:distancias} muestra las distancias mínimas obtenidas para cada imagen de prueba del dataset de Yale, junto con la distancia a la persona correcta. 
+La figura~\ref{fig:histograma_distancias_yale} presenta la distribución de estas distancias mediante un histograma y un diagrama de caja, mostrando que la mayoría de las distancias están por debajo del umbral $\epsilon_0 = 10$ (solo 26.7\% están por encima).
+
+\input{tabla_distancias.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{grafico_histograma_distancias.png}
+\caption{Distribución de distancias mínimas para el dataset de Yale. El gráfico izquierdo muestra el histograma de frecuencias y el derecho el diagrama de caja. Las líneas punteadas indican los umbrales $\epsilon_0 = 10$ y $\epsilon_1 = 5$.}
+\label{fig:histograma_distancias_yale}
+\end{figure}
+
+Este mejor rendimiento puede atribuirse a varias características del dataset de Yale:
+
+\begin{itemize}
+    \item \textbf{Mayor cantidad de imágenes por persona}: 584 imágenes por persona frente a aproximadamente 100 en el dataset de celebridades, permitiendo construir un espacio facial más robusto y representativo.
+    \item \textbf{Condiciones controladas}: Las imágenes fueron capturadas en condiciones de iluminación y pose más controladas, reduciendo la variabilidad intrapersonal.
+    \item \textbf{Mejor alineación}: El dataset de Yale tiene mejor alineación facial, lo que resulta en representaciones más consistentes en el espacio facial.
+    \item \textbf{Preprocesamiento consistente}: Todas las imágenes fueron procesadas de manera uniforme, minimizando variaciones en la calidad y formato.
+\end{itemize}
+
+Estos resultados confirman que el método SVD es efectivo cuando se cuenta con un dataset adecuado: con suficientes imágenes por persona, condiciones de captura controladas y buen preprocesamiento, el algoritmo puede alcanzar un rendimiento satisfactorio. La diferencia de rendimiento entre ambos datasets demuestra la importancia de la calidad y cantidad de datos de entrenamiento para el éxito del método.
 
 \subsubsection{Imágenes de prueba utilizadas}
 
@@ -405,9 +451,9 @@ A continuación se muestran algunas de las imágenes de prueba utilizadas para e
 \section{Discusión}
 \subsection{Interpretación de resultados}
 
-Los resultados obtenidos revelan aspectos importantes sobre el comportamiento del algoritmo SVD para reconocimiento facial. El análisis de los valores singulares muestra un decaimiento rápido característico, indicando que el espacio facial tiene una estructura bien definida donde los primeros componentes capturan la mayor parte de la variabilidad. Esto sugiere que el método es eficiente en términos de representación, ya que la información esencial se concentra en relativamente pocas dimensiones.
+Los resultados obtenidos revelan aspectos importantes sobre el comportamiento del algoritmo SVD para reconocimiento facial. El análisis de los valores singulares muestra un decaimiento rápido característico en ambos datasets, indicando que el espacio facial tiene una estructura bien definida donde los primeros componentes capturan la mayor parte de la variabilidad. Esto sugiere que el método es eficiente en términos de representación, ya que la información esencial se concentra en relativamente pocas dimensiones.
 
-Sin embargo, el rendimiento del reconocimiento con imágenes de prueba que no pertenecen al conjunto de entrenamiento presenta desafíos significativos. Las distancias mínimas observadas (17-25 unidades) están consistentemente por encima del umbral $\epsilon_0 = 10$, lo que indica que el espacio facial generado no es lo suficientemente compacto para estas imágenes. Este comportamiento puede atribuirse a varios factores:
+La comparación entre los resultados obtenidos con ambos datasets proporciona insights valiosos sobre los factores que influyen en el rendimiento del método. Con el dataset de celebridades, el rendimiento del reconocimiento con imágenes de prueba que no pertenecen al conjunto de entrenamiento presenta desafíos significativos. Las distancias mínimas observadas (17-25 unidades) están consistentemente por encima del umbral $\epsilon_0 = 10$, lo que indica que el espacio facial generado no es lo suficientemente compacto para estas imágenes. Este comportamiento puede atribuirse a varios factores:
 
 \begin{itemize}
     \item \textbf{Variabilidad en las condiciones de captura}: Las imágenes de prueba pueden tener condiciones de iluminación, pose o expresión diferentes a las de entrenamiento, generando distancias mayores en el espacio facial.
@@ -417,7 +463,11 @@ Sin embargo, el rendimiento del reconocimiento con imágenes de prueba que no pe
 
 Es notable que el sistema sí identifica patrones correctos en varios casos (la distancia mínima corresponde a la persona correcta), lo que indica que el método SVD es capaz de capturar características distintivas. El problema principal radica en la magnitud absoluta de las distancias, que supera los umbrales establecidos.
 
-El hecho de que el sistema funcione perfectamente con imágenes del conjunto de entrenamiento (100\% de efectividad con umbrales más bajos) confirma que el algoritmo está implementado correctamente y que el espacio facial es adecuado para representar las imágenes conocidas. La diferencia en el rendimiento entre imágenes de entrenamiento y prueba sugiere que el desafío principal está en la generalización a nuevas condiciones.
+El hecho de que el sistema funcione perfectamente con imágenes del conjunto de entrenamiento (100\% de efectividad con umbrales más bajos) confirma que el algoritmo está implementado correctamente y que el espacio facial es adecuado para representar las imágenes conocidas. 
+
+La diferencia en el rendimiento entre ambos datasets es notable: mientras que con el dataset de celebridades se obtuvo 0\% de precisión, con el dataset de Yale se alcanzó 73.3\% de precisión (22 de 30 pruebas correctas). Esta diferencia demuestra claramente la importancia de la calidad y cantidad de datos de entrenamiento. El dataset de Yale, con más imágenes por persona (584 vs. ~100), mejores condiciones de captura y mejor alineación, permite construir un espacio facial más robusto y representativo, resultando en distancias más compactas (5.1-9.8 unidades) que facilitan el reconocimiento correcto.
+
+La diferencia en el rendimiento entre imágenes de entrenamiento y prueba sugiere que el desafío principal está en la generalización a nuevas condiciones, pero este desafío se mitiga significativamente cuando se cuenta con un dataset de mayor calidad y cantidad.
 
 % \subsection{Comparación con otros métodos}
 
@@ -477,16 +527,32 @@ En este trabajo se implementó exitosamente un sistema de reconocimiento facial 
 \begin{itemize}
     \item \textbf{Implementación completa del algoritmo}: Se implementaron los siete pasos fundamentales del método SVD para reconocimiento facial, desde la obtención del conjunto de entrenamiento hasta la clasificación de nuevas imágenes.
     
-    \item \textbf{Análisis del espacio facial}: Se generó y analizó un espacio facial de dimensión 1,783 a partir de 1,783 imágenes de 17 personas diferentes, identificando el comportamiento característico de decaimiento rápido en los valores singulares.
+    \item \textbf{Evaluación con múltiples datasets}: Se evaluó el sistema con dos datasets diferentes (dataset de celebridades y Yale Face Database), permitiendo analizar el impacto de la calidad y cantidad de datos en el rendimiento del algoritmo.
+    
+    \item \textbf{Análisis del espacio facial}: Se generaron y analizaron espacios faciales de diferentes dimensiones (1,783 y 10,000 valores singulares), identificando el comportamiento característico de decaimiento rápido en los valores singulares en ambos casos.
     
     \item \textbf{Evaluación sistemática}: Se realizó una evaluación completa del sistema utilizando imágenes de prueba, generando métricas de distancia y análisis estadísticos que permiten entender el comportamiento del algoritmo.
     
-    \item \textbf{Validación del método}: Se confirmó que el algoritmo funciona correctamente con imágenes del conjunto de entrenamiento, alcanzando 100\% de efectividad con umbrales apropiados, lo que valida la implementación.
+    \item \textbf{Validación del método}: Se confirmó que el algoritmo funciona correctamente con imágenes del conjunto de entrenamiento, alcanzando 100\% de efectividad con umbrales apropiados. Además, se demostró que con un dataset adecuado (Yale Face Database) se puede alcanzar 73.3\% de precisión en reconocimiento de imágenes de prueba.
+    
+    \item \textbf{Análisis comparativo}: Se identificó la importancia crítica de la calidad y cantidad de datos de entrenamiento, demostrando que el método SVD puede alcanzar un rendimiento satisfactorio cuando se cuenta con un dataset apropiado.
     
     \item \textbf{Análisis de limitaciones}: Se identificaron las principales limitaciones del método y se analizó su comportamiento frente a variaciones en las condiciones de captura de las imágenes.
 \end{itemize}
 
-El trabajo demuestra que el método SVD es viable para reconocimiento facial, aunque requiere ajustes cuidadosos de los parámetros y mejoras en el preprocesamiento para alcanzar un rendimiento óptimo en condiciones reales.
+El trabajo demuestra que el método SVD es viable para reconocimiento facial cuando se cuenta con un dataset adecuado: con suficientes imágenes por persona, condiciones de captura controladas y buen preprocesamiento, el algoritmo puede alcanzar un rendimiento satisfactorio. Los resultados también confirman que la calidad y cantidad de datos de entrenamiento son factores determinantes para el éxito del método.
+
+% Referencias
+\section{Referencias}
+\begin{thebibliography}{99}
+
+\bibitem{celebrity_dataset}
+Celebrity Face Image Dataset. Kaggle. Disponible en: \url{https://www.kaggle.com/datasets/vishesh1412/celebrity-face-image-dataset}
+
+\bibitem{yale_dataset}
+Extended Yale B Cropped Full. Kaggle. Disponible en: \url{https://www.kaggle.com/datasets/jensdhondt/extendedyaleb-cropped-full/data}
+
+\end{thebibliography}
 
 \end{document}
 
