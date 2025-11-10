@@ -1,7 +1,3 @@
 .python-version
-.venv/
+**/*.ipynb_checkpoints
 __pycache__/
-
-report/*
-!report/informe.pdf
-!report/informe.tex
