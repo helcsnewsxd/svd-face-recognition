@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from math import log10
 from tqdm import tqdm
-from typing import List
+from typing import List, Tuple
 
 
 class Image:
@@ -38,9 +38,14 @@ class Image:
 
     k: int
         Compression level
+
+    shape: Tuple[int, int] | None
+        Image shape
     """
 
-    def __init__(self, image: npt.NDArray[np.uint8], k: int) -> None:
+    def __init__(
+        self, image: npt.NDArray[np.uint8], k: int, shape: Tuple[int, int] | None = None
+    ) -> None:
         """
         Image constructor with preprocessing applied to it.
 
@@ -50,6 +55,8 @@ class Image:
             Original image
         k: int
             Compression level
+        shape: Tuple[int, int] | None
+            Image shape
 
         Returns
         -------
@@ -68,10 +75,11 @@ class Image:
         self.A = None
         self.U, self.S, self.Vh = None, None, None
         self.k = k
-        self.preprocessing(k)
+        self.shape = shape
+        self.preprocessing(k, shape)
 
     @classmethod
-    def from_file(cls, file: str, k: int):
+    def from_file(cls, file: str, k: int, shape: Tuple[int, int] | None = None):
         """
         Image constructor reading image from file.
 
@@ -81,6 +89,8 @@ class Image:
             Image file
         k: int
             Compression level
+        shape: Tuple[int, int] | None
+            Image shape
 
         Returns
         -------
@@ -113,9 +123,9 @@ class Image:
             logging.error("Reading failure.")
             raise ValueError(f"Failed to read image from {file}.")
 
-        return cls(image, k)  # type: ignore
+        return cls(image, k, shape)  # type: ignore
 
-    def preprocessing(self, k: int) -> None:
+    def preprocessing(self, k: int, shape: Tuple[int, int] | None = None) -> None:
         """
         Preprocessing image with compression level k.
         Applies GrayScale filter and image compression using SVD.
@@ -124,6 +134,8 @@ class Image:
         ----------
         k: int
             Compression level
+        shape: Tuple[int, int] | None
+            Image shape
 
         Returns
         -------
@@ -141,12 +153,19 @@ class Image:
 
         logging.debug("Image preprocessing.")
         self.k = k
+        self.shape = shape
+
+        # Resize image
+        if shape is not None:
+            resized_image = cv2.resize(self.image, shape)
+        else:
+            resized_image = self.image
 
         # BGR image to GRAY_SCALE
-        self.gray_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        self.gray_image = cv2.cvtColor(resized_image, cv2.COLOR_BGR2GRAY)
 
         # Compress image
-        U, S, Vh = np.linalg.svd(self.gray_image)
+        U, S, Vh = np.linalg.svd(self.gray_image)  # type: ignore[arg-type]
         self.U, self.S, self.Vh = (
             U[:, :k],
             S[:k],
@@ -156,10 +175,10 @@ class Image:
         self.compressed_image = cv2.normalize(
             self.A,
             None,  # type: ignore[arg-type]
-            0,
-            255,
-            cv2.NORM_MINMAX,
-        ).astype(np.uint8)
+            alpha=0,
+            beta=1,
+            norm_type=cv2.NORM_MINMAX,
+        ).astype(np.float64)
 
         # Compression metrics
         # PSNR: > 40dB indistinguishable
@@ -186,9 +205,10 @@ class Image:
         """
 
         if self.compressed_image is not None and self.gray_image is not None:
+            compressed_to_show = (self.compressed_image * 255).astype(np.uint8)
             cv2.imshow(
                 f"Grayscale: Original vs. {self.k}-th compression",
-                np.hstack((self.gray_image, self.compressed_image)),
+                np.hstack((self.gray_image, compressed_to_show)),
             )
         else:
             cv2.imshow("Original image", self.image)
@@ -197,7 +217,51 @@ class Image:
         cv2.destroyAllWindows()
 
 
-def read_images_from_directory(directory: str, k: int, LOG: bool) -> List[Image]:
+def read_images(
+    paths: List[str], k: int, LOG: bool, shape: Tuple[int, int] | None = None
+) -> List[Image]:
+    """
+    Read images from path list and return a list of Image classes with
+    preprocessed images.
+
+    Parameters
+    ----------
+    paths: List[str]
+        Path list for all image files
+    k: int
+        Compression level
+    LOG: bool
+        If we want to see TQDM bar
+    shape: Tuple[int, int] | None
+        Image shape
+
+    Returns
+    -------
+    List[Image]:
+        List with all Image classes for each one in the path list
+
+    Raises
+    ------
+    ValueError:
+        If compression level k exceeds image matrix rank for some image into the directory
+    """
+    image_list = []
+    pbar = (
+        tqdm(total=len(paths), desc="Image reading and preprocessing", unit="Image")
+        if LOG
+        else None
+    )
+    for file in paths:
+        image_list.append(Image.from_file(file, k, shape))
+        if pbar:
+            pbar.update(1)
+
+    return image_list
+
+
+def read_images_from_directory(
+    directory: str, k: int, LOG: bool, shape: Tuple[int, int] | None = None
+) -> List[Image]:
     """
     Read images from directory and return a list of Image classes with
     preprocessed images.
@@ -210,6 +274,8 @@ def read_images_from_directory(directory: str, k: int, LOG: bool) -> List[Image]
         Compression level
     LOG: bool
         If we want to see TQDM bar
+    shape: Tuple[int, int] | None
+        Image shape
 
     Returns
     -------
@@ -229,32 +295,19 @@ def read_images_from_directory(directory: str, k: int, LOG: bool) -> List[Image]
     elif not os.path.isdir(directory):
         raise NotADirectoryError(f"Directory {directory} isn't a directory.")
 
-    image_list = []
-
     image_files = [
         f"{directory}/{file}"
         for file in os.listdir(directory)
         if os.path.isfile(f"{directory}/{file}")
     ]
-    pbar = (
-        tqdm(
-            total=len(image_files), desc="Image reading and preprocessing", unit="Image"
-        )
-        if LOG
-        else None
-    )
-    for file in image_files:
-        image_list.append(Image.from_file(file, k))
-        if pbar:
-            pbar.update(1)
-
-    return image_list
+    return read_images(image_files, k, LOG, shape)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Image preprocessing module")
     parser.add_argument("directory", type=str, help="Directory with images to read")
     parser.add_argument("-k", required=True, type=int, help="Compression level")
+    parser.add_argument("--shape", nargs=2, type=int, help="Image size")
     parser.add_argument("--log", type=str, choices=["DEBUG", "INFO"], help="Log level")
     args = parser.parse_args()
 
@@ -266,7 +319,7 @@ if __name__ == "__main__":
 
     # To check
     images = read_images_from_directory(
-        args.directory, k=args.k, LOG=(args.log is not None)
+        args.directory, k=args.k, LOG=(args.log is not None), shape=args.shape
     )
     for i in images:
         i.show
