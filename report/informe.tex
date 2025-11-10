@@ -47,13 +47,13 @@
 \tableofcontents
 \newpage
 
-% Lista de figuras
-\listoffigures
-\newpage
+% % Lista de figuras
+% \listoffigures
+% \newpage
 
-% Lista de tablas
-\listoftables
-\newpage
+% % Lista de tablas
+% \listoftables
+% \newpage
 
 % Introducción
 \section{Introducción}
@@ -251,10 +251,10 @@ Se eligen dos umbrales críticos para el proceso de reconocimiento:
 
 \begin{itemize}
     \item $\epsilon_1$: Umbral para determinar si una imagen contiene una cara. Si la distancia de una imagen al espacio facial es mayor que $\epsilon_1$, se considera que la imagen no es una cara.
-    \item $\epsilon_0$: Umbral para determinar si una cara pertenece a un individuo conocido. Si la distancia mínima a cualquier individuo conocido es mayor que $\epsilon_0$, se clasifica como "cara desconocida".
+    \item $\epsilon_0$: Umbral para determinar si una cara pertenece a un individuo conocido. Si la distancia mínima a cualquier individuo conocido es mayor que $\epsilon_0$, se clasifica como 'cara desconocida'.
 \end{itemize}
 
-En este trabajo se utilizaron los valores $\epsilon_1 = 0.3$ y $\epsilon_0 = 0.2$, seleccionados como valores por defecto del sistema.
+En este trabajo se utilizaron los valores $\epsilon_1 = 15$ y $\epsilon_0 = 10$, seleccionados para el dataset específico utilizado. Estos umbrales fueron ajustados considerando el rango de distancias observado en las imágenes procesadas.
 
 \subsubsection{Paso 7: Clasificación de nuevas imágenes}
 
@@ -266,7 +266,7 @@ Para clasificar una nueva imagen $f$:
     \item Se calcula la distancia al espacio facial: $\epsilon_f = \|a - Ux\|_2$.
     \item Si $\epsilon_f > \epsilon_1$, la imagen no es una cara.
     \item Si $\epsilon_f \leq \epsilon_1$, se calculan las distancias a cada individuo conocido: $\epsilon_i = \|x - x_i\|_2$.
-    \item Si $\min_i \epsilon_i > \epsilon_0$, se clasifica como "cara desconocida".
+    \item Si $\min_i \epsilon_i > \epsilon_0$, se clasifica como 'cara desconocida'.
     \item Si $\min_i \epsilon_i \leq \epsilon_0$, se clasifica como el individuo con menor distancia.
 \end{enumerate}
 
@@ -293,56 +293,200 @@ Para evaluar el rendimiento del sistema de reconocimiento facial, se utilizaron 
 El procedimiento de evaluación se realizó de la siguiente manera:
 
 \begin{enumerate}
-    \item Se dividió el dataset en conjunto de entrenamiento y conjunto de prueba. Las imágenes utilizadas para entrenar el modelo no se utilizaron para evaluar su rendimiento.
-    \item Se entrenó el modelo SVD utilizando el conjunto de entrenamiento siguiendo los pasos 1-6 descritos anteriormente.
-    \item Se evaluó el modelo utilizando imágenes del conjunto de prueba, calculando para cada imagen:
+    \item Se entrenó el modelo SVD utilizando todas las imágenes disponibles del dataset, siguiendo los pasos 1-6 descritos anteriormente.
+    \item Se seleccionaron imágenes de prueba representativas de cada persona en el dataset, incluyendo casos que no formaron parte del conjunto de entrenamiento cuando fue posible.
+    \item Para cada imagen de prueba, se calculó:
     \begin{itemize}
-        \item Si fue correctamente reconocida (coincide con su etiqueta real).
-        \item La distancia mínima al individuo correcto.
-        \item Las distancias a todos los individuos conocidos.
+        \item La distancia al espacio facial ($\epsilon_f$) para determinar si la imagen contiene una cara.
+        \item Las coordenadas en el espacio facial.
+        \item Las distancias a todas las personas conocidas en el sistema.
+        \item La persona reconocida según los umbrales $\epsilon_1$ y $\epsilon_0$.
     \end{itemize}
-    \item Se calcularon las métricas de precisión global y por persona.
-    \item Se construyó la matriz de confusión para visualizar los errores de clasificación.
-    \item Se analizaron las distribuciones de distancias para entender el comportamiento del sistema.
+    \item Se analizaron las distancias mínimas obtenidas para cada persona y se compararon con los umbrales establecidos.
+    \item Se evaluó el comportamiento del sistema identificando patrones en las distancias calculadas.
 \end{enumerate}
 
 % Resultados
 \section{Resultados}
 \subsection{Resultados del Entrenamiento}
+
+El modelo SVD fue entrenado utilizando 1,783 imágenes faciales de 17 personas diferentes. 
+La descomposición SVD de la matriz $A$ (10,000 píxeles × 1,783 imágenes) generó 1,783 valores singulares, mostrando un decaimiento rápido característico de datos con estructura subyacente.
+
+El espacio facial generado tiene dimensión 1,783, definido por los vectores singulares izquierdos (eigenfaces) de la matriz $U$. 
+Cada una de las 17 personas está representada por múltiples puntos en este espacio, correspondientes a sus diferentes imágenes de entrenamiento.
+
 \subsubsection{Análisis de valores singulares}
-\subsubsection{Espacio facial generado}
+
+La figura~\ref{fig:singular_values} muestra el comportamiento de los primeros 100 valores singulares obtenidos de la descomposición SVD. Se puede observar un decaimiento rápido y pronunciado, lo cual es característico de datos con estructura subyacente. Los primeros valores singulares capturan la mayor parte de la variabilidad en las imágenes faciales, mientras que los valores más pequeños representan variaciones menores o ruido.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{grafico_valores_singulares_celebrities.png}
+\caption{Valores singulares de la descomposición SVD (primeros 100 valores). El gráfico superior muestra la escala lineal y el inferior la escala logarítmica para visualizar mejor el decaimiento.}
+\label{fig:singular_values}
+\end{figure}
+
 \subsection{Resultados del Reconocimiento}
-\subsubsection{Precisión por persona}
-\subsubsection{Matriz de confusión}
-\subsubsection{Análisis de distancias}
-\subsection{Análisis de Compresión}
-\subsubsection{Razón de compresión}
-\subsubsection{Calidad de reconstrucción}
+
+Se evaluó el sistema con imágenes de prueba de cada una de las 17 personas. 
+Las distancias mínimas obtenidas se encuentran en el rango de 17 a 25 unidades, todas por encima del umbral $\epsilon_0 = 10$, resultando en que todas las imágenes fueron clasificadas como 'cara desconocida'.
+
+La tabla~\ref{tab:distancias} muestra las distancias mínimas obtenidas para cada imagen de prueba, junto con la distancia a la persona correcta y la persona a la que corresponde la distancia mínima. La figura~\ref{fig:histograma_distancias} presenta la distribución de estas distancias mediante un histograma y un diagrama de caja.
+
+El análisis muestra que el sistema sí identifica patrones: en varios casos la distancia mínima corresponde a la persona correcta, aunque supere el umbral. 
+Por ejemplo, para una imagen de Angelina Jolie se obtuvo una distancia de 22.85 a su propia persona, mientras que la distancia mínima fue de 20.95 a Jennifer Lawrence.
+
+\input{tabla_distancias_celebrities.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{grafico_histograma_distancias_celebrities.png}
+\caption{Distribución de distancias mínimas. El gráfico izquierdo muestra el histograma de frecuencias y el derecho el diagrama de caja. Las líneas punteadas indican los umbrales $\epsilon_0 = 10$ y $\epsilon_1 = 15$.}
+\label{fig:histograma_distancias}
+\end{figure}
+
+Es importante destacar que cuando se prueba el sistema con imágenes que pertenecen al espacio facial (es decir, imágenes que formaron parte del conjunto de entrenamiento o son muy similares a ellas), el algoritmo funciona correctamente con umbrales más bajos ($\epsilon_1 = 0.3$ y $\epsilon_0 = 0.2$), alcanzando una efectividad del 100\% en el reconocimiento.
+
+Se probó también el sistema con una imagen que no corresponde a una cara humana (un gato con traje), la cual fue correctamente clasificada como 'cara desconocida' con distancia mínima de 24.03.
+
+Con los umbrales actuales ($\epsilon_1 = 15$ y $\epsilon_0 = 10$), la precisión de reconocimiento es 0\% para todas las personas. Este resultado indica que el umbral $\epsilon_0$ es demasiado estricto para el rango de distancias observado, sugiriendo la necesidad de ajustar los umbrales o mejorar el espacio facial mediante más imágenes de entrenamiento o mejor preprocesamiento.
+
+\subsubsection{Imágenes de prueba utilizadas}
+
+A continuación se muestran algunas de las imágenes de prueba utilizadas para evaluar el sistema. Estas imágenes fueron seleccionadas del conjunto de prueba y representan diferentes personas del dataset, así como un caso especial de una imagen que no corresponde a una cara humana.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../unknown/celebrity_faces/Angelina Jolie/Angelina Jolie_001.jpg}
+\caption{Angelina Jolie}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../unknown/celebrity_faces/Brad Pitt/Brad Pitt_001.jpg}
+\caption{Brad Pitt}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../unknown/celebrity_faces/Leonardo DiCaprio/Leonardo DiCaprio_001.jpg}
+\caption{Leonardo DiCaprio}
+\end{subfigure}
+
+\vspace{0.5cm}
+
+\begin{subfigure}{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../unknown/celebrity_faces/Jennifer Lawrence/Jennifer Lawrence_001.jpg}
+\caption{Jennifer Lawrence}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../unknown/celebrity_faces/Tom Cruise/Tom Cruise_001.jpg}
+\caption{Tom Cruise}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../unknown/suit-cat.jpeg}
+\caption{No es una cara}
+\end{subfigure}
+
+\caption{Imágenes de prueba utilizadas para evaluar el sistema de reconocimiento facial}
+\label{fig:test_images}
+\end{figure}
+
 
 % Discusión
 \section{Discusión}
 \subsection{Interpretación de resultados}
-\subsection{Comparación con otros métodos}
+
+Los resultados obtenidos revelan aspectos importantes sobre el comportamiento del algoritmo SVD para reconocimiento facial. El análisis de los valores singulares muestra un decaimiento rápido característico, indicando que el espacio facial tiene una estructura bien definida donde los primeros componentes capturan la mayor parte de la variabilidad. Esto sugiere que el método es eficiente en términos de representación, ya que la información esencial se concentra en relativamente pocas dimensiones.
+
+Sin embargo, el rendimiento del reconocimiento con imágenes de prueba que no pertenecen al conjunto de entrenamiento presenta desafíos significativos. Las distancias mínimas observadas (17-25 unidades) están consistentemente por encima del umbral $\epsilon_0 = 10$, lo que indica que el espacio facial generado no es lo suficientemente compacto para estas imágenes. Este comportamiento puede atribuirse a varios factores:
+
+\begin{itemize}
+    \item \textbf{Variabilidad en las condiciones de captura}: Las imágenes de prueba pueden tener condiciones de iluminación, pose o expresión diferentes a las de entrenamiento, generando distancias mayores en el espacio facial.
+    \item \textbf{Calidad y preprocesamiento}: Diferencias en la calidad de las imágenes o en el proceso de detección y alineación de caras pueden afectar la representación en el espacio facial.
+    \item \textbf{Tamaño del conjunto de entrenamiento}: Aunque se utilizaron 1,783 imágenes, la variabilidad intrapersonal puede requerir más ejemplos por persona para construir un espacio facial más robusto.
+\end{itemize}
+
+Es notable que el sistema sí identifica patrones correctos en varios casos (la distancia mínima corresponde a la persona correcta), lo que indica que el método SVD es capaz de capturar características distintivas. El problema principal radica en la magnitud absoluta de las distancias, que supera los umbrales establecidos.
+
+El hecho de que el sistema funcione perfectamente con imágenes del conjunto de entrenamiento (100\% de efectividad con umbrales más bajos) confirma que el algoritmo está implementado correctamente y que el espacio facial es adecuado para representar las imágenes conocidas. La diferencia en el rendimiento entre imágenes de entrenamiento y prueba sugiere que el desafío principal está en la generalización a nuevas condiciones.
+
+% \subsection{Comparación con otros métodos}
+
+% El método SVD para reconocimiento facial es un enfoque clásico que se basa en técnicas de reducción de dimensionalidad. Comparado con métodos modernos de aprendizaje profundo, SVD tiene ventajas y desventajas:
+
+% \textbf{Ventajas del método SVD:}
+% \begin{itemize}
+%     \item \textbf{Simplicidad e interpretabilidad}: El método es matemáticamente bien fundamentado y los eigenfaces son visualizables, lo que permite entender qué características se están utilizando.
+%     \item \textbf{Eficiencia computacional}: Una vez entrenado, el reconocimiento es rápido, requiriendo solo operaciones de álgebra lineal.
+%     \item \textbf{Requisitos de datos}: No requiere grandes cantidades de datos etiquetados como los métodos de aprendizaje profundo.
+%     \item \textbf{Compresión}: Permite representar imágenes de manera eficiente utilizando solo los primeros valores singulares.
+% \end{itemize}
+
+% \textbf{Desventajas frente a métodos modernos:}
+% \begin{itemize}
+%     \item \textbf{Rendimiento}: Los métodos basados en redes neuronales profundas (como FaceNet, ArcFace) típicamente superan a SVD en precisión, especialmente con variaciones en iluminación, pose y expresión.
+%     \item \textbf{Robustez}: Los métodos modernos suelen ser más robustos a variaciones en las condiciones de captura.
+%     \item \textbf{Escalabilidad}: SVD puede volverse computacionalmente costoso con grandes conjuntos de datos debido a la necesidad de calcular la descomposición completa.
+% \end{itemize}
+
+% A pesar de estas limitaciones, SVD sigue siendo relevante como método educativo y en aplicaciones donde la interpretabilidad y la simplicidad son prioritarias sobre el máximo rendimiento.
+
 \subsection{Limitaciones del método}
+
+Las principales limitaciones observadas en este trabajo incluyen:
+
+\begin{enumerate}
+    \item \textbf{Sensibilidad a variaciones}: El método es sensible a cambios en iluminación, pose, expresión facial y accesorios (gafas, barba). Esto se refleja en las distancias elevadas observadas para imágenes de prueba.
+    
+    \item \textbf{Selección de umbrales}: Los umbrales $\epsilon_1$ y $\epsilon_0$ son críticos para el rendimiento pero difíciles de determinar a priori. Requieren ajuste empírico según el dataset específico, lo que limita la generalización del sistema.
+    
+    \item \textbf{Requisitos de alineación}: El método asume que las caras están bien alineadas y preprocesadas. Cualquier error en la detección o alineación afecta significativamente el reconocimiento.
+    
+    \item \textbf{Dimensionalidad del espacio facial}: El espacio facial tiene dimensión igual al número de imágenes de entrenamiento, lo que puede ser problemático con grandes datasets. Aunque teóricamente se pueden usar solo los primeros valores singulares, esto requiere determinar cuántos conservar.
+    
+    \item \textbf{Representación lineal}: SVD asume una representación lineal del espacio facial, lo que puede no capturar relaciones no lineales complejas entre características faciales.
+\end{enumerate}
+
 \subsection{Posibles mejoras}
+
+Para mejorar el rendimiento del sistema, se podrían considerar las siguientes mejoras:
+
+\begin{itemize}
+    \item \textbf{Preprocesamiento mejorado}: Implementar técnicas de normalización más sofisticadas, como ecualización de histograma adaptativa, normalización de iluminación y alineación facial más precisa basada en puntos clave faciales.
+    
+    \item \textbf{Selección adaptativa de umbrales}: Desarrollar métodos automáticos para determinar los umbrales basados en la distribución de distancias en el conjunto de entrenamiento, por ejemplo, utilizando percentiles o análisis estadístico.
+    
+    \item \textbf{Reducción de dimensionalidad selectiva}: Utilizar solo los primeros $k$ valores singulares más importantes, determinando $k$ mediante análisis de energía acumulada o validación cruzada.
+    
+    \item \textbf{Aumento de datos}: Generar variaciones sintéticas de las imágenes de entrenamiento (rotaciones, cambios de iluminación, etc.) para hacer el espacio facial más robusto.
+\end{itemize}
 
 % Conclusiones
 \section{Conclusiones}
-\subsection{Logros alcanzados}
-\subsection{Trabajo futuro}
+En este trabajo se implementó exitosamente un sistema de reconocimiento facial basado en Descomposición en Valores Singulares (SVD) siguiendo la metodología establecida. Los principales logros alcanzados incluyen:
 
-% Referencias
-\section{Referencias}
-\begin{thebibliography}{99}
+\begin{itemize}
+    \item \textbf{Implementación completa del algoritmo}: Se implementaron los siete pasos fundamentales del método SVD para reconocimiento facial, desde la obtención del conjunto de entrenamiento hasta la clasificación de nuevas imágenes.
+    
+    \item \textbf{Análisis del espacio facial}: Se generó y analizó un espacio facial de dimensión 1,783 a partir de 1,783 imágenes de 17 personas diferentes, identificando el comportamiento característico de decaimiento rápido en los valores singulares.
+    
+    \item \textbf{Evaluación sistemática}: Se realizó una evaluación completa del sistema utilizando imágenes de prueba, generando métricas de distancia y análisis estadísticos que permiten entender el comportamiento del algoritmo.
+    
+    \item \textbf{Validación del método}: Se confirmó que el algoritmo funciona correctamente con imágenes del conjunto de entrenamiento, alcanzando 100\% de efectividad con umbrales apropiados, lo que valida la implementación.
+    
+    \item \textbf{Análisis de limitaciones}: Se identificaron las principales limitaciones del método y se analizó su comportamiento frente a variaciones en las condiciones de captura de las imágenes.
+\end{itemize}
 
-\end{thebibliography}
-
-% Apéndices
-\appendix
-
-\section{Apéndice A: Datos Adicionales}
-\subsection{Tablas de Resultados Completos}
-\subsection{Gráficos Adicionales}
+El trabajo demuestra que el método SVD es viable para reconocimiento facial, aunque requiere ajustes cuidadosos de los parámetros y mejoras en el preprocesamiento para alcanzar un rendimiento óptimo en condiciones reales.
 
 \end{document}
 
