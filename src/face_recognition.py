@@ -216,6 +216,41 @@ class FaceRecognition:
             )
             return self.imgs[idx][1], specific_face
 
+    def get_distances(self, src: str) -> List[Tuple[str, np.floating | float]]:
+        """
+        Gets all distances from the given image to each known face.
+
+        Parameters
+        ----------
+        src: str
+            Path to the image to be classified
+
+        Returns
+        -------
+        [(tag: str, distance: float)]
+            List of tuples with the tag of each known face and the corresponding distance value.
+
+        Raises
+        ------
+        RuntimeError:
+            If the model has not been trained yet
+        """
+        if self.N == 0:
+            raise RuntimeError("Model can't classify without previous training")
+
+        logging.info("Starting model distances query")
+
+        f = Image.from_file(src, self.k, self.shape).compressed_image.flatten()  # type: ignore[arg-type]
+        x = self.U.T @ (f - self.fmean)
+
+        person = {}
+        for j in range(self.N):
+            eps = np.linalg.norm(x - self.X[:, j], ord=2)
+            if self.imgs[j][1] not in person or eps < person[self.imgs[j][1]]:
+                person[self.imgs[j][1]] = eps
+
+        return list(person.items())
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Face recognition module using SVD")
@@ -228,6 +263,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--tags", nargs="+", type=str, help="Face names for each directory path"
+    )
+    parser.add_argument(
+        "--get_all_distances",
+        action="store_true",
+        help="Get all distances from each people face",
     )
     parser.add_argument("-k", required=True, type=int, help="Compression level")
     parser.add_argument("--shape", nargs=2, type=int, help="Image size")
@@ -275,9 +315,6 @@ if __name__ == "__main__":
         args.without_threshold, args.e0, args.e1, args.k, LOG, args.shape
     )
     model.train(images, tags)
-    ans = model.classify(args.target)
-
-    if ans is None:
-        print("Face doesn't found")
-    else:
-        print(f"Image is face for {ans[0]} with distance {ans[1]}")
+    ans = model.get_distances(args.target)
+    for key, value in ans:
+        print(f"Distance to {key}: {value}")
