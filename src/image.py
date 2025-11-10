@@ -172,13 +172,7 @@ class Image:
             Vh[:k, :],
         )
         self.A = self.U @ np.diag(self.S) @ self.Vh
-        self.compressed_image = cv2.normalize(
-            self.A,
-            None,  # type: ignore[arg-type]
-            alpha=0,
-            beta=1,
-            norm_type=cv2.NORM_MINMAX,
-        ).astype(np.float64)
+        self.compressed_image = self.A / 255.0
 
         # Compression metrics
         # PSNR: > 40dB indistinguishable

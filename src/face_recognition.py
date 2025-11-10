@@ -9,28 +9,33 @@ from image import Image, read_images
 class FaceRecognition:
     def __init__(
         self,
-        e0: float,
-        e1: float,
+        without_threshold: bool,
+        e0: float | None,
+        e1: float | None,
         k: int,
         LOG: bool,
         shape: Tuple[int, int],
     ) -> None:
-        if e0 <= 0 or e1 <= 0 or k <= 0:
-            raise ValueError("Threshold and compression values must be positives")
+        self.without_threshold = without_threshold
+        if not without_threshold:
+            if e0 is None or e1 is None:
+                raise ValueError("Thresholds must to have values")
+            elif e0 <= 0 or e1 <= 0:
+                raise ValueError("Threshold values must be positives")
+            self.e0, self.e1 = e0, e1
 
-        self.e0, self.e1 = e0, e1
+        if k <= 0:
+            raise ValueError("Compression value must be positive")
         self.k = k
         self.LOG = LOG
         self.shape = shape
 
         self.imgs = []
         self.M, self.N = shape[0] * shape[1], 0
-        self.fmean = np.ndarray((0,))
-        self.A, self.U, self.X = (
-            np.ndarray((0, 0)),
-            np.ndarray((0, 0)),
-            np.ndarray((0, 0)),
-        )
+        self.fmean = np.zeros((0,))
+        self.A = np.zeros((0, 0))
+        self.U = np.zeros((0, 0))
+        self.X = np.zeros((0, 0))
 
     def train(self, images: List[str], tags: List[str]) -> None:
         if len(images) == 0:
@@ -59,10 +64,10 @@ class FaceRecognition:
         self.A = S - self.fmean.reshape(-1, 1)
 
         # Get orthogonal U
-        self.U = np.linalg.svd(self.A, full_matrices=False).U
+        self.U, _, _ = np.linalg.svd(self.A, full_matrices=False)
 
         # Calculate image coordinates in face space
-        self.X = np.column_stack([self.U.T @ self.A[:, j] for j in range(self.N)])
+        self.X = self.U.T @ self.A
 
     def classify(self, src: str) -> Tuple[str, np.floating | float] | None:
         if self.N == 0:
@@ -75,23 +80,31 @@ class FaceRecognition:
 
         # Check if it's a face (e1)
         fp = self.U @ x
-        is_face = np.linalg.norm((f - self.fmean) - fp, ord=2)
 
-        if is_face > self.e1:
-            logging.info(f"{src} isn't a face. Value equal to {is_face}.")
-            return None
+        if not self.without_threshold:
+            is_face = np.linalg.norm((f - self.fmean) - fp, ord=2)
+            if is_face > self.e1:
+                logging.info(f"{src} isn't a face. Value equal to {is_face}.")
+                return None
 
         # Check if it's a known face (e0) and get it
         qnt = 0
         specific_face = -1
         idx = -1
-        for j in range(self.N):
-            eps = np.linalg.norm(x - self.X[:, j], ord=2)
-            if eps <= self.e0:
-                qnt += 1
+        if not self.without_threshold:
+            for j in range(self.N):
+                eps = np.linalg.norm(x - self.X[:, j], ord=2)
+                if eps <= self.e0:
+                    qnt += 1
+                    if idx < 0 or eps < specific_face:
+                        specific_face = eps
+                        idx = j
+        else:
+            qnt = 1
+            for j in range(self.N):
+                eps = np.linalg.norm(x - self.X[:, j], ord=2)
                 if idx < 0 or eps < specific_face:
-                    specific_face = eps
-                    idx = j
+                    specific_face, idx = eps, j
 
         if qnt == 0:
             logging.info(f"{src} is an unknown face.")
@@ -120,14 +133,16 @@ if __name__ == "__main__":
     parser.add_argument("-k", required=True, type=int, help="Compression level")
     parser.add_argument("--shape", nargs=2, type=int, help="Image size")
     parser.add_argument(
+        "--without_threshold",
+        action="store_true",
+        help="If we want to run FaceRecognition without threshold (to get important values to calculate them)",
+    )
+    parser.add_argument(
         "-e0",
-        required=True,
         type=float,
         help="Threshold to know if image is a known face",
     )
-    parser.add_argument(
-        "-e1", required=True, type=float, help="Threshold to know if image is a face"
-    )
+    parser.add_argument("-e1", type=float, help="Threshold to know if image is a face")
     parser.add_argument("--log", type=str, choices=["DEBUG", "INFO"], help="Log level")
     args = parser.parse_args()
 
@@ -135,6 +150,12 @@ if __name__ == "__main__":
         raise parser.error(
             "Lists --images and --tags must to have saem quantity of elements."
         )
+    elif args.without_threshold and (args.e0 or args.e1):
+        raise parser.error(
+            "If we specify without_threshold, then values e0, e1 won't be considered"
+        )
+    elif not args.without_threshold and (args.e0 is None and args.e1 is None):
+        raise parser.error("Thresholds must be defined")
 
     logging.basicConfig(
         level=getattr(logging, args.log if (args.log is not None) else "WARNING"),
@@ -151,11 +172,13 @@ if __name__ == "__main__":
                 images.append(f"{dir}/{file}")
                 tags.append(tag)
 
-    model = FaceRecognition(args.e0, args.e1, args.k, LOG, args.shape)
+    model = FaceRecognition(
+        args.without_threshold, args.e0, args.e1, args.k, LOG, args.shape
+    )
     model.train(images, tags)
     ans = model.classify(args.target)
 
     if ans is None:
         print("Face doesn't found")
     else:
-        print(f"Image is face for {ans[0]}")
+        print(f"Image is face for {ans[0]} with distance {ans[1]}")
