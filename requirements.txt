@@ -2,4 +2,6 @@ opencv-python
 numpy
 tqdm
 ipykernel
+matplotlib 
+seaborn
 scikit-learn
