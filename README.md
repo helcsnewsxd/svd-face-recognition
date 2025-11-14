@@ -25,5 +25,6 @@ Finally, we include a report in PDF format that details the methodology, experim
 | [celebrities_distances.txt](./metrics/celebrities_distances.txt) | Results file containing distance metrics from face recognition experiments without thresholding, for Celebrity Faces Dataset. |
 | [analysis.ipynb](./metrics/analysis.ipynb)                       | Jupyter notebook for visualizing and analyzing the distance metrics from face recognition experiments.                        |
 | [report.pdf](./report/report.pdf)                                | PDF report detailing the methodology, experiments, and findings related to SVD in face recognition.                           |
+| [slides.pdf](./report/slides.pdf)                                | Presentation slides summarizing the key points of the report.                                                                 |
 
 </div>
