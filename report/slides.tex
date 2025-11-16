@@ -1,0 +1,359 @@
+\documentclass{beamer}
+\usetheme{Frankfurt}
+
+\usepackage{aliascnt}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{booktabs}
+\graphicspath{{assets/}}
+\usetikzlibrary{shapes.geometric, arrows, positioning}
+
+% Math environment
+\setbeamertemplate{theorem}[ams style]
+\deftranslation[to=spanish]{Theorem}{Teorema}
+\deftranslation[to=spanish]{Corollary}{Corolario}
+\deftranslation[to=spanish]{Lemma}{Lema}
+\deftranslation[to=spanish]{Proof}{Demostración}
+\deftranslation[to=spanish]{Definition}{Definición}
+\deftranslation[to=spanish]{Example}{Ejemplo}
+\theoremstyle{remark}
+\newtheorem{remark}{Nota}
+
+% Pseudocode environment
+\usepackage[ruled,vlined]{algorithm2e}
+\renewcommand{\algorithmcfname}{Algoritmo}
+\renewcommand{\algorithmautorefname}{Algoritmo}
+\renewcommand{\listalgorithmcfname}{Índice de algoritmos}
+
+\title{Reconocimiento de rostros mediante descomposición en valores singulares (SVD)}
+\author{Gonzalo Bordón\\ Emanuel Nicolás Herrador}
+\institute{Facultad de Matemática, Astronomía, Física y Computación\\Universidad Nacional de Córdoba}
+\titlegraphic{\includegraphics[width=5cm]{logo.png}}
+\date{14 de Noviembre de 2025}
+
+\newcommand{\appendixtitle}{
+  \title{Apéndice}
+  \subtitle{Material complementario}
+}
+
+\begin{document}
+\frame{\titlepage}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Índice}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\section{Introducción}
+\subsection{Reconocimiento facial}
+\begin{frame}{Reconocimiento facial}
+  \begin{definition}
+    Identificación o verificación de la identidad de una persona a partir de una
+    imagen digital de su rostro.
+  \end{definition}
+
+  \begin{itemize}
+    \item<2-> Una de las áreas más activas en el campo de visión por computadora e
+      inteligencia artificial
+    \item<2-> Aplicaciones en seguridad, control de acceso, interacción
+      humano-computadora, sistemas biométricos, entre otros.
+    \item<2-> \underline{Desafíos}: variaciones en iluminación, pose, expresión facial,
+      edad y accesorios (gafas, gorros).
+  \end{itemize}
+\end{frame}
+
+\subsection{Objetivos}
+\begin{frame}{Objetivos}
+  \begin{enumerate}
+    \item Implementación del módulo de preprocesamiento de imágenes para estandarizarlas
+      y comprimirlas.
+    \item Implementación del algoritmo completo de reconocimiento facial basado en 
+      SVD.
+    \item Evaluación del rendimiento del sistema en datasets reales, incluyendo 
+      análisis de precisión y exactitud, como matrices de confusión.
+    \item Análisis de las propiedades de los espacios faciales generados, incluyendo 
+      el estudio de los valores singulares y su relación con la capacidad de compresión 
+      y reconstrucción de las imágenes 
+  \end{enumerate}
+\end{frame}
+
+\section{Algoritmo}
+\subsection{Preprocesamiento}
+\begin{frame}{Preprocesamiento de imágenes}
+  \alt<2->{
+    \begin{itemize}
+      \item \textbf{Compresión} usando SVD con $k=40$ valores singulares.
+    \end{itemize}
+
+    \begin{block}{Funcionamiento}
+      Dada una imagen $I \in \mathbb{R}^{m\times n}$, sea $I = U\Sigma V^T$ su 
+      descomposición SVD, entonces la imagen comprimida se reconstruye usando 
+      solo los primeros $k$ valores singulares:
+      \begin{equation*}
+        \tilde{I} = \sum_{i=1}^k \sigma_i u_i v_i^T 
+      \end{equation*}
+    \end{block}
+    \only<3->{
+      \begin{block}{Ventajas}
+        \begin{itemize}
+          \item Espacio de almacenamiento: $m\times n$ a $k \cdot (m+n+1)$
+          \item Estructura y formas principales se mantienen dado que los últimos valores 
+            singulares capturan principalmente ruido
+        \end{itemize}
+      \end{block}
+    }
+  }{
+    Pasos del preprocesamiento a realizar:
+    \begin{itemize}
+      \item \textbf{Conversión} a escala de grises.
+      \item \textbf{Redimensionamiento} a $100\times 100$ pixeles.
+      \item \textbf{Compresión} usando SVD con $k=40$ valores singulares.
+      \item \textbf{Normalización} al rango $[0,1]$.
+      \item \textbf{Vectorización} a $10000$ dimensiones.
+    \end{itemize}
+  }
+\end{frame}
+\begin{frame}{Comparación: Original vs Preprocesada}
+  \alt<2->{
+    \alt<3->{
+      \begin{figure}
+        \centering
+        \includegraphics[width=0.4\textwidth]{celebrities_psnr.png}
+        \hspace{1cm}
+        \includegraphics[width=0.4\textwidth]{yale_psnr.png}
+        \caption{\underline{Izquierda}: PSNR en dataset Celebrities. 
+                 \underline{Derecha}: PSNR en dataset Yale.}
+      \end{figure}
+    }{
+      \begin{block}{PSNR (Peak Signal-to-Noise Ratio)}
+        Métrica que cuantifica la calidad de la imagen comprimida en comparación con la 
+        original. Se define como:
+        \begin{equation*}
+          \text{PSNR} = 10 \cdot \log_{10}\left(\frac{MAX_I^2}{MSE}\right)
+        \end{equation*}
+        donde $MAX_I$ es el valor máximo posible de un píxel (255 para imágenes de 8 bits) 
+        y $MSE$ es el error cuadrático medio entre la imagen original y la comprimida.
+      \end{block}
+      \begin{itemize}
+        \item $> 30$ dB: Calidad aceptable, diferencias apenas perceptibles.
+        \item $> 40$ dB: Alta calidad, diferencias casi indistinguibles.
+        \item $< 20$ dB: Baja calidad, diferencias notables.
+      \end{itemize}
+    }
+  }{
+    \begin{figure}
+      \centering
+      \includegraphics[width=0.3\textwidth]{Angelina Jolie.jpg}
+      \hspace{1cm}
+      \includegraphics[width=0.36\textwidth]{Angelina Jolie - compressed.png}
+      \caption{\underline{Izquierda}: Imagen original. \underline{Derecha}: Imagen preprocesada.}
+    \end{figure}
+  }
+\end{frame}
+
+\subsection{Reconocimiento facial}
+\begin{frame}{Reconocimiento facial mediante SVD}
+  \alt<5->{
+    \begin{enumerate}
+      \setcounter{enumi}{4}
+      \item<5-> \textbf{Coordenadas faciales}: proyección de imágenes de entrenamiento 
+        en el espacio de eigenfaces.
+        \begin{equation*}
+          \forall i \in [1, N],\quad x_i = U^T (f_i - \bar{f})
+        \end{equation*}
+      \item<6-> \textbf{Selección de umbrales}:
+        \begin{itemize}
+          \item \textbf{Umbral de reconocimiento facial} $\varepsilon_1$: distancia máxima para 
+            considerar que una imagen es un rostro.
+          \item \textbf{Umbral de identificación facial} $\varepsilon_0$: distancia máxima para
+            considerar que una imagen pertenece a una persona conocida.
+        \end{itemize}
+      \item<7-> \textbf{Clasificación} de una imagen de prueba $f$: según distancia euclidiana en 
+        el espacio de eigenfaces con las coordenadas faciales ($x_i$) y los umbrales.
+      \end{enumerate}
+    }{
+      Los pasos del algoritmo de reconocimiento facial son:
+      \begin{enumerate}
+        \item<1-> \textbf{Conjunto de entrenamiento}: $S = [f_1\ f_2\ \dots\ f_N]$ donde 
+          cada $f_i$ es una imagen vectorizada preprocesada.
+        \item<2-> \textbf{Cálculo de la media facial}:
+          \begin{equation*}
+            \bar{f} = \frac{1}{N} \sum_{i=1}^N f_i
+          \end{equation*}
+        \item<3-> \textbf{Matriz de diferencias}: $A = [a_1\ a_2\ \dots\ a_N]$ donde 
+          $a_i = f_i - \bar{f}$
+        \item<4-> \textbf{Descomposición SVD} de $A$:
+          \begin{equation*}
+            A = U\Sigma V^T
+          \end{equation*}
+          donde las columnas de $U$ son los \textbf{eigenfaces}.
+      \end{enumerate}
+    }
+\end{frame}
+\begin{frame}{Diagrama de decisión}
+  \begin{figure}
+    \centering
+    \scalebox{0.75}{
+      \begin{tikzpicture}[
+          node distance=1cm,
+          decision/.style={diamond, draw, fill=blue!20, text width=2cm, text centered, minimum height=0.8cm, font=\scriptsize},
+          process/.style={rectangle, draw, fill=green!20, text width=2.2cm, text centered, minimum height=0.8cm, font=\scriptsize},
+          startstop/.style={rectangle, rounded corners, draw, fill=red!20, text width=2.2cm, text centered, minimum height=0.8cm, font=\scriptsize},
+          arrow/.style={thick,->,>=stealth}
+      ]
+
+      \node [startstop] (start) {Nueva imagen $f$};
+      \node [process, right of=start, xshift=2cm] (preprocess) {Preprocesar};
+      \node [process, right of=preprocess, xshift=2cm] (coords) {Calcular $x$};
+      \node [process, right of=coords, xshift=2cm] (distface) {$\epsilon_f = \|a - Ux\|_2$};
+      \node [decision, below of=distface, yshift=-1.5cm] (isface) {$\epsilon_f \leq \epsilon_1$?};
+      \node [process, below of=isface, yshift=-1.5cm] (notface) {No es cara};
+      \node [process, left of=isface, xshift=-2cm] (distperson) {Cálculo de distancias\\ $\varepsilon_i=\|x-x_i\|_2$};
+      \node [decision, left of=distperson, xshift=-2cm] (known) {$\min \varepsilon_i \leq \epsilon_0$?};
+      \node [process, below of=known, yshift=-1.5cm] (unknown) {Desconocida};
+      \node [startstop, left of=known, xshift=-2cm] (recognized) {Reconocida};
+
+      \draw [arrow] (start) -- (preprocess);
+      \draw [arrow] (preprocess) -- (coords);
+      \draw [arrow] (coords) -- (distface);
+      \draw [arrow] (distface) -- (isface);
+      \draw [arrow] (isface) -- node[pos=0.5, right, font=\tiny] {No} (notface);
+      \draw [arrow] (isface) -- node[pos=0.5, above, font=\tiny] {Sí} (distperson);
+
+      \draw [arrow] (distperson) -- (known);
+      \draw [arrow] (known) -- node[pos=0.5, right, font=\tiny] {No} (unknown);
+      \draw [arrow] (known) -- node[pos=0.5, above, font=\tiny] {Sí} (recognized);
+
+      \end{tikzpicture}
+    }
+    \caption{Diagrama de flujo del algoritmo de reconocimiento facial}
+  \end{figure}
+\end{frame}
+
+\section{Resultados}
+\subsection{Datasets}
+\begin{frame}{Datasets utilizados}
+  \begin{columns}
+    \column{0.45\textwidth}
+      \begin{block}{Dataset de Celebridades}
+        \begin{itemize}
+            \item 17 individuos
+            \item $\sim$100 imágenes/persona
+            \item Condiciones variables
+        \end{itemize}
+        \begin{figure}
+          \centering
+          \includegraphics[height=0.6\textwidth]{Angelina Jolie.jpg}
+          \caption{Imagen representativa}
+        \end{figure}
+      \end{block}
+
+    \column{0.45\textwidth}
+      \begin{block}{Yale Face Database}
+        \begin{itemize}
+            \item 28 personas
+            \item 584 imágenes/persona
+            \item Condiciones controladas
+        \end{itemize}
+        \begin{figure}
+          \centering
+          \includegraphics[height=0.6\textwidth]{yaleB11.jpg}
+          \caption{Imagen representativa}
+        \end{figure}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\subsection{Rendimiento}
+\begin{frame}{Rendimiento del sistema}
+  \alt<2->{
+    \begin{figure}
+      \centering
+      \begin{tabular}{c}
+        \includegraphics[width=0.45\textwidth]{celebrities_classification_metrics.png} \\
+        \includegraphics[width=0.45\textwidth]{yale_classification_metrics.png}
+      \end{tabular}
+      \caption{\footnotesize \underline{Arriba}: Celebrities. 
+              \underline{Abajo}: Yale.}
+    \end{figure}
+  }{
+  \begin{table}
+    \centering
+    \small
+    \begin{tabular}{lcc}
+    \toprule
+    \textbf{Métrica} & \textbf{Celebridades} & \textbf{Yale} \\
+    \midrule
+    Condiciones & Variables & Controladas \\
+    Imágenes/persona & $\sim$100 & 584 \\
+    Exactitud & $0.15\%$ & $\mathbf{82.42\%}$ \\
+    Precisión por persona & $0\%$ - $29\%$ & $> 59\%$ \\
+    F1-Score & - & $> 60\%$ \\
+    Top-2 accuracy & $27.9\%$ & $88.6\%$ \\
+    Top-3 accuracy & $35\%$ & $91.2\%$ \\
+    \bottomrule
+    \end{tabular}
+  \end{table}
+  }
+\end{frame}
+
+\subsection{Análisis de resultados}
+\begin{frame}{Análisis de resultados}
+  \begin{block}{Dataset de Celebridades ($0.15\%$)}
+    \begin{itemize}
+      \item \textbf{Pocas imágenes por persona} ($\sim$100 vs. 584)
+      \item \textbf{Condiciones no controladas}: iluminación, pose, expresión variables
+      \item \textbf{Falta de alineación facial} adecuada
+      \item \textbf{Variabilidad alta} entre imágenes de la misma persona
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Yale Face Database ($82.42\%$)}
+    \begin{itemize}
+      \item \textbf{Más imágenes por persona} (584) → espacio facial más robusto
+      \item \textbf{Condiciones controladas}: iluminación y pose consistentes
+      \item \textbf{Mejor alineación facial}
+      \item \textbf{Preprocesamiento uniforme}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\section{Conclusiones y posibles mejoras}
+\subsection{Conclusiones}
+\begin{frame}{Conclusiones Principales}
+  \begin{block}{Resultado Clave}
+    El método SVD es \textbf{viable para reconocimiento facial} cuando se cuenta con:
+    \begin{itemize}
+      \item Suficientes imágenes por persona
+      \item Condiciones de captura controladas
+      \item Buen preprocesamiento y alineación
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Factor Determinante}
+    La \textbf{calidad y cantidad de datos de entrenamiento} son factores críticos
+    para el éxito del método.
+  \end{block}
+\end{frame}
+
+\subsection{Mejoras posibles}
+\begin{frame}{Mejoras Posibles}
+  \begin{itemize}
+    \item \textbf{Preprocesamiento mejorado}: Ecualización de histograma adaptativa,
+      normalización de iluminación, alineación facial precisa basada en puntos clave.
+    \item \textbf{Selección adaptativa de umbrales}: Métodos automáticos basados en distribución
+      de distancias (percentiles, análisis estadístico).
+    \item \textbf{Reducción de dimensionalidad selectiva}: Usar solo los primeros $k$
+      valores singulares más importantes.
+    \item \textbf{Aumento de datos}: Generar variaciones sintéticas (rotaciones,
+      cambios de iluminación) para robustecer el espacio facial.
+  \end{itemize}
+\end{frame}
+
+\end{document}

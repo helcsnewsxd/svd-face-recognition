@@ -172,7 +172,7 @@ class Image:
             Vh[:k, :],
         )
         self.A = self.U @ np.diag(self.S) @ self.Vh
-        self.compressed_image = self.A / 255.0
+        self.compressed_image = np.clip(np.clip(self.A, 0, 255) / 255.0, 0, 1)
 
         # Compression metrics
         # PSNR: > 40dB indistinguishable

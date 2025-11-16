@@ -7,3 +7,5 @@ __pycache__/
 **/*.log
 **/*.out
 **/*.toc
+**/*.nav 
+**/*.snm
